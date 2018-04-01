@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {    
+    margin: 0 !important;
+    padding: 0 !important;
+    font: sans-serif;
+    /*background-color: #111;*/
+}
+input[type=button]:focus {
+  outline:0 !important;
+}
+#topbar {
+  height: 40px;
+  background-color: #eee;
+}
+
+
+#boxplot {
+  border-top: 1px solid #ccc;
+  /*padding: 50px 180px;*/
+  
+}
+
+.axis{
+  font: 16px sans-serif;
+  color: #ccc;
+}
+  .axis.x {
+    font-size: 12px;
+  }
+
+.axis path,
+.axis line {
+  fill: none;
+  shape-rendering: crispEdges;
+}
+  .axis.x line{
+    stroke: #333;
+  }
+
+circle {
+  opacity: 0.2;
+}
+/*.highlighted {
+  color: orange;
+  opacity: 1;
+}*/
+.domainname path {
+  opacity: 0.3;
+}
+.filter.active {
+  fill: #eee;
+}
+
+.x.axis path {
+  display: none;
+}
+.eventtype, .actionbtn{
+  background-color: #333;
+  border: white solid 2px;
+  color: white;
+  padding: 4px 4px;
+  text-align: center;
+  text-decoration: none;
+  font-size: 10px;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+  .eventtype.active {
+    background-color: #999;
+  }
+
+
+.box {
+  font: 14px sans-serif;
+}
+
+.box line,
+.box rect,
+.box circle {
+  fill: #fff;
+  stroke: #333;
+  stroke-width: 1.5px;
+}
+
+.box .center {
+  stroke-dasharray: 3,3;
+}
+
+.box .outlier {
+  fill: none;
+  stroke: #ccc;
+}
+
+.dropbtn {
+    background-color: white;
+    height: 100%;
+    width: 100%;
+    color: #aaa;
+    padding: 16px;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+}
+/* Dropdown button on hover & focus */
+.dropbtn:hover, .dropbtn:focus {
+    background-color: #ddd;
+    outline:0 !important;
+
+}
+
+/* The container <div> - needed to position the dropdown content */
+.dropdown {
+    position: relative;
+    top: 25px;
+    left: 200px;
+    display: block;
+    border: 1px dashed #333;
+    height: 48px;
+    width: 400px;
+}
+#myDropdown {
+    padding: 20px 20px;
+}
+#myDropdown li {
+    list-style: none outside none;
+}
+
+/* Dropdown Content (Hidden by Default) */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+}
+
+/* Links inside the dropdown */
+.dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+/* Change color of dropdown links on hover */
+.dropdown-content a:hover {background-color: #f1f1f1}
+
+/* Show the dropdown menu (use JS to add this class to the .dropdown-content container when the user clicks on the dropdown button) */
+.show {display:block;}
+
+</style>
+<body>
+<div id = "topbar"></div> 
+<div id = "container">
+  <div id = "timeline_viz"></div>
+  <div id ="boxplot">
+    <div id = 'box_viz'></div>
+    <div class = "dropdown">
+        <button onclick="toggleDropdown()" class="dropbtn">Create BoxPlot</button>
+        <div id="myDropdown" class="dropdown-content">
+          <button class = "actionbtn" onclick = "createBox()">Calculate</button>
+        </div>
+    </div>
+  </div>
+  <!-- <input type="button" id="btnSave" onclick="savePNG()"/> -->
+</div>
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="lib/box.js"></script>
+<script>
+
+function toggleDropdown () {
+    document.getElementById("myDropdown").classList.toggle("show");
+}
+
+// Close the dropdown menu if the user clicks outside of it
+window.onclick = function(event) {
+
+}
+function createBox(e) {
+  boxdata = []; var outliers = [];
+  var dropdowns = document.getElementsByClassName("dropdown-content");
+  var i;
+  for (i = 0; i < dropdowns.length; i++) {
+    var openDropdown = dropdowns[i];
+    if (openDropdown.classList.contains('show')) {
+      openDropdown.classList.remove('show');
+    }
+  }
+  selecteddata.forEach(function(d) {
+    if (d[e[0]] && d[e[1]]) {
+      var each = (d[e[0]] - d[e[1]]) / oneday;
+      boxdata.push(each);
+      if(d.name.includes("top")) outliers.push(d.name);
+      if(each < -2 ) outliers.push(d.name);
+    }
+  });
+  console.log(outliers)
+  var boxsvg = d3.select("#box_viz").append("svg")
+      .data([boxdata])
+      .attr("class", "box")
+      .attr("width", width + box_margin.left + box_margin.right)
+      .attr("height", box_height+ box_margin.top + box_margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + box_margin.left + "," + box_margin.top + ")")
+      .call(chart);
+
+  var title = boxsvg.append("text")
+      .text(function() {return getNameMap(e[0]); })
+      .style("text-anchor","end") 
+      .attr("y", margin.top/5)
+      .attr("x", -20);
+  var title2 = boxsvg.append("text")
+      .text(function() {return "-" +getNameMap(e[1]); })
+      .style("text-anchor","end") 
+      .attr("y", margin.top/5)
+      .attr("dy", "1.5em")
+      .attr("x", -20);
+}
+
+var margin = {top: 25, right: 200, bottom: 50, left: 250},
+    width = 1280 - margin.left - margin.right,
+    height = 300 - margin.top - margin.bottom,
+    padding = 20;
+var box_margin = {top: 40, right: 250, bottom: 15, left: 250}
+var box_width = width,
+    box_height = 25;
+//var colorOf = d3.scale.category20();
+var colorDef = "#999",
+    colorRange = ['#de6161','#2657eb'],
+    colorOf = d3.scale.linear()
+    .range(colorRange);
+var selecteddata = [], boxdata =[[],[]], boxready = [];
+var line = d3.svg.line().defined(function(d) {return !isNaN(d[0])&&!isNaN(d[1]); });
+var y = d3.scale.ordinal()
+    .rangeRoundPoints([padding,height - padding]);
+var oneday = 24 * 60 * 60 * 1000;
+
+var chart = d3.box()
+    .whiskers(iqr(3))
+    .width(box_width)
+    .height(box_height);
+
+var x = d3.time.scale()
+    .range([10, width-10]);
+var x1 = d3.scale.linear()
+    .range([5, width-5]);
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .tickFormat(function (d) {
+      return getNameMap(d);
+     })
+    .orient("left");
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom");
+
+var x1Axis = d3.svg.axis()
+    .scale(x1)
+    .orient("bottom");
+
+var parseDate = d3.time.format("%Y-%m-%d").parse;
+var parseDate_vt = d3.time.format("%Y-%m-%d %H:%M:%S").parse;
+
+var controller = d3.select('#topbar');
+
+var svg = d3.select("#timeline_viz").append("svg")
+    .attr("class", "timeline")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+d3.json("Report-datasets/visa/visa_withattack.json", function(error,domaindata) { // load the data
+  var output = [];
+  console.log(domaindata);
+  d3.json("firstseenlookup.json", function(error,vtdata) {
+    var stats = {"odns":0, "vt":0};
+
+    var myfilter =  new Date(1450000080000); // April 2016
+    console.log(new Date(1450000080000));
+    console.log(new Date(1460044080000));
+    domaindata.forEach(function(d) {
+      var selectdomain = {};
+      if (d.created && d.first_tag) {
+        selectdomain.created = parseDate(d.created);
+        selectdomain.first_tag = new Date(d.first_tag);
+        selectdomain.name = d.name;
+        selectdomain.attack = d.attack;
+        selectdomain.threat = d.threat? d.threat: "none";
+        if (selectdomain.created.getTime() > myfilter.getTime()){
+          if(d.ODNS_first_seen && d.ODNS_first_seen >1450000080000) { 
+            selectdomain.first_seen = new Date(d.ODNS_first_seen);
+            selectdomain.seentotag = (selectdomain.first_tag - selectdomain.first_seen) / oneday;
+                //output.push(selectdomain.seentotag);
+        
+          }
+          stats.odns += 1
+          if (d.vt_first_tag) {
+            stats.vt += 1;
+            selectdomain.VT = parseDate_vt(d.vt_first_tag);
+            selectdomain.ODNStoVT= (selectdomain.first_tag - selectdomain.VT)/ oneday;
+    
+          }
+          if (selectdomain.created.getTime() > myfilter.getTime()) selecteddata.push(selectdomain)
+          output.push(selectdomain.created)
+        }
+      }
+
+    })
+console.log(output)
+    colorOf.domain(d3.extent(output));
+    console.log("keep only domains with first seen later than: " + new Date(1460044080000));
+    // colorOf.domain(d3.extent(domaindata,function(d) { console.log(d.seenreturn d.seentotag}))
+    console.log(stats);
+    var attacks = [],threats = [];
+    selecteddata.map(function(d) {
+      if(d.attack && attacks.indexOf(d.attack) <= -1) attacks.push(d.attack)
+      if(d.threat && threats.indexOf(d.threat) <= -1) threats.push(d.threat)
+    });
+        //console.log(attacks,threats);
+    var ifbox = false;
+
+    var eventtypes = ["created","first_seen","first_tag","VT"];
+    var eventfilters = eventtypes.slice(0);
+    attacks.splice(0,0,"none");
+    var attackfilters = threats.slice(0);
+    //colorOf.domain(threats);
+
+    d3.select(".dropdown-content").selectAll('.boxoption').data(eventtypes)
+      .enter()
+      .append("li").attr("class","boxoption")
+      .text(function(d) {return getNameMap(d); })
+      .append("input")
+      .attr("type","checkbox")
+      .on("click", function(d) {
+        if(d3.select(this).property("checked")) boxready.push(d);
+        if (boxready.length == 2) { 
+          createBox(boxready); 
+          boxready = []; 
+          d3.selectAll(".boxoption input").property("checked", false);
+        };
+      })
+
+
+
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis)
+     
+    svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxis);
+    //updateAxis(eventtypes, selecteddata);
+    update(eventtypes,selecteddata);
+
+    var legend = svg.selectAll('.filter').data(threats);
+    var buttons = controller.selectAll("input").data(eventtypes) 
+      .enter().append("input")
+      .attr("type","button")
+      .attr('value',function(d) {return getNameMap(d); })
+      .attr("class","eventtype")
+      .attr("x", function(c,i) {return i* 55; })
+      .attr("y", 0)
+      .attr("fill", "grey")
+      .on("click", function(d) {
+          var thisevent= d3.select(this);
+          thisevent.classed("active", !thisevent.classed("active"));
+          var index = eventfilters.indexOf(d);
+          if (index > -1) eventfilters.splice(index,1)
+          else eventfilters.splice(0,0,d);
+          update(eventfilters,selecteddata);
+          //boxplot();
+      });
+    // var controller = svg.selectAll('.eventtype').data(eventtypes).enter()
+    //   .append("rect")
+    //   .attr("class", "controller")
+    //   .attr("width", 20)
+    //   .attr("height", 10)
+    //   .attr("x", function(c,i) {return i* 25;})
+    //   .attr("y", -100 )
+    //   .attr("fill", "grey")
+    //   .on("click", function(d) {
+    //       var thisevent= d3.select(this);
+    //       thisevent.classed("active", !thisevent.classed("active"));
+    //       var index = eventfilters.indexOf(d);
+    //       if (index > -1) eventfilters.splice(index,1)
+    //       else eventfilters.splice(0,0,d);
+    //       update(eventfilters,selecteddata);
+    //       //boxplot();
+    //   });
+
+    // legend.enter()
+    //   .append("rect")
+    //   .attr("class", "filter")
+    //   .attr("width", 20)
+    //   .attr("height", 10.5)
+    //   .attr("x", width + 40)
+    //   .attr("y", function(d,i) {return i* 15 + 15;} )
+    //   .attr("fill", function(d) { return colorOf(d); })
+    //   .on("click", function(d) {
+    //       var thisfilter = d3.select(this);
+    //       thisfilter.classed("active", !thisfilter.classed("active"));
+    //       var index = attackfilters.indexOf(d);
+    //       if (index > -1) attackfilters.splice(index,1)
+    //       else attackfilters.splice(0,0,d);
+
+    //       update(eventfilters,selecteddata.filter(function(t) { return attackfilters.includes(t.threat); }))
+    //   });
+    // legend.enter()
+    //   .append("text")
+    //   .text(function(c) {return c; })
+    //   .attr("x", width + 70)
+    //   .attr("y", function(c,i) {return i* 15 + 15;} )
+    //   .attr("dy", ".6em")
+    //   .style({
+    //     "font-family":'sans-serif',
+    //     "font-size":'10'
+    //   });
+    
+    function update(events,data) {
+      ifbox = false;
+      //console.log("original",data);
+      d3.selectAll('.eventaxis').remove();
+      updateAxis(events,data);
+      svg.selectAll("g.y.axis").call(yAxis);
+      svg.selectAll("g.x.axis").call(xAxis);
+      d3.selectAll('.domainname').remove();
+
+      var domainnames = svg.selectAll('.domainname').data(data);
+      domainnames.enter()
+        .append("g")
+        .attr("class", "domainname");
+
+      domainnames.each(function(d) {
+        var thisdomain = d3.select(this);
+        var thiscolor = d.created? colorOf(d.created) : colorDef; 
+        thisdomain.append("path")
+          .attr("d", function(d) {return path(d); })
+          .style("stroke", thiscolor)
+          .style("stroke-width", 1)
+          .style("fill", "none");
+
+        events.forEach(function(event) {
+
+          thisdomain.append("circle")
+            .attr("class", event)
+            .attr("cy", function(d) { return y(event); })
+            .attr("cx", function(d) {
+              if(!d[event]) return 2400
+              else return x(d[event])
+            })
+            .attr("r", 5)
+            .style("fill", thiscolor)
+            .on("mouseover", function(d) {
+              var rowdata = d3.select(this.parentNode).datum();
+              d3.select(this).classed("highlighted",true);
+              d3.select(this.parentNode).selectAll('circle').style("fill","orange").style("opacity", 1);
+              d3.select(this.parentNode).select('path').style("stroke","orange").style("opacity", 1);
+              console.log(d.name)
+            })
+            .on("mouseout", function(d) {
+              d3.select(this.parentNode).selectAll('circle').style("fill",thiscolor).style("opacity", 0.3);
+              d3.select(this.parentNode).select('path').style("stroke",thiscolor).style("opacity", 0.3);
+            })
+        });
+      });
+    }
+    // function boxplot() {
+    //   ifbox = !ifbox;
+
+    //   svg.selectAll("g.x.axis").call(x1Axis);
+    //   d3.selectAll('.first_tag').transition().duration(1000).attr("cx", x1(0));
+    //   d3.selectAll('.VT').transition().duration(1000).attr("cx", function(d) {
+    //       return x1(d.ODNStoVT);
+    //   });
+    //   // d3.selectAll('.created').transition().duration(1000).attr("cx", function(d) {
+    //   //     return x1(d.creationtoseen);
+    //   // })
+    //   d3.selectAll('path').style("display", !ifbox? null: "none");
+    // }
+    function updateAxis(events,data) {
+      y.domain(events);
+      var eventlines = svg.selectAll('.eventaxis').data(events);
+      events.forEach(function(event) {
+        svg.append('line')
+          .attr("class","eventaxis")
+          .attr("x1", 0)
+          .attr("x2", width)
+          .attr("y1", y(event))
+          .attr("y2", y(event))
+          .style("stroke", "#ccc")
+      })
+
+      var x_domain = [];
+      var x1_domain = [];
+      var creationtoseen_domain = d3.extent(data, function(d) {return d.creationtoseen; });
+      var ODNStoVT_domain = d3.extent(data, function(d) {return d.ODNStoVT; });
+      events.forEach(function(event) {
+        x_domain.push(d3.max(data, function(d) {return d[event]}));
+        x_domain.push(d3.min(data, function(d) {return d[event]}));
+      });
+      x.domain(d3.extent(x_domain));
+    }
+    function path(d) {
+        var paths = line(y.domain().map(function(p) { 
+          if (!d[p]) {
+            return [NaN,NaN]
+            if (p ==="created") return [-1000, y(p)]
+            else return [width +1000, y(p)]
+          }
+          else {
+            //if (x(d[p]) < 10)console.log(p,d,d[p],x(d[p]));
+            return [x(d[p]), y(p)];
+          }   
+        })); 
+        return paths;
+    }
+    function findAttack(name) {
+      var attacklist = json.by_attack;
+      for (attack in attacklist) {
+        var domainsbyattack = attacklist[attack].domains;
+        if (domainsbyattack.includes(name)) return attack
+      }
+    }
+    function findThreat(name) {
+      var threatlist = json.by_threat_type;
+      for (threat in threatlist) {
+        var domainsbythreat = threatlist[threat].domains;
+        if (domainsbythreat.includes(name)) {return threat;}
+      }
+    }
+
+  });
+});
+// Returns a function to compute the interquartile range.
+function iqr(k) {
+  return function(d, i) {
+    var q1 = d.quartiles[0],
+        q3 = d.quartiles[2],
+        iqr = (q3 - q1) * k,
+        i = -1,
+        j = d.length;
+    while (d[++i] < q1 - iqr);
+    while (d[--j] > q3 + iqr);
+    return [i, j];
+  };
+}
+function getNameMap(dimension) { 
+  // NOTE: Predefined scales
+  var names = {
+      "created" : 'Registered',
+      "VT" : "VT_FirstFlag",
+      "VT_first_seen" : "VT_FirstSeen",
+      "first_tag" : "ODNS_FirstTag",
+      "first_seen" : "ODNS_FirstSeen"
+  }
+  if (names[dimension])
+    return names[dimension]
+  else
+    return dimension
+}
+
+function type(d) {
+  d.time = parseDate(d.time);
+  return d;
+}
+
+</script>

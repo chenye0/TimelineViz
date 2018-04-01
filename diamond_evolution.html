@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="main.css">
+<body>
+<div id = "topbar">
+  <h3>The Evolution of Domains</h3>
+</div> 
+<div id = "container">
+  <div id = "control"></div>
+<!--   <div id = "sidebar">
+    <ul>
+      <li>something</li>
+      <li>something1</li>
+    </ul>
+  </div> -->
+  <div id = "timeline_viz"></div>
+  <div id = "animate">
+    <button ></button>
+  </div>
+  <div id ="boxplot">
+    <div id = 'box_viz'></div>
+    <div class = "dropdown">
+        <button onclick="toggleDropdown()" class="dropbtn">Create BoxPlot</button>
+        <div id="myDropdown" class="dropdown-content">
+          <button class = "actionbtn" onclick = "createBox()">Calculate</button>
+        </div>
+    </div>
+  </div>
+</div>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="lib/box.js"></script>
+<script>
+var container_width = document.body.clientWidth;
+var container_height = document.body.clientHeight;
+var margin = {top: 100, right: 200, bottom: 50, left: 250},
+    width = d3.min([container_width,1200]) - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom,
+    padding = 20;
+var div = d3.select("#timeline_viz").append("div")
+    .attr("class", "tooltip")
+    .attr("display", "none")
+    .attr("background-color", "#333")
+    .style("opacity", 0);
+var box_margin = {top: 40, right: 250, bottom: 15, left: 250}
+var box_width = width,
+    box_height = 30;
+var colorOf = d3.scale.category20();
+var colorPinky = ["#FFC600", "#FEC606", "#FEC60B", "#FDC710", "#FDC716", "#FCC61B", "#FCC61F", "#FCC523", "#FBC427", 
+    "#FBC22B", "#FBC02D", "#FBBD2F", "#FBBA31", "#FBB632", "#FBB132", "#FCAC31", "#FCA730", "#FDA12F", "#FD9B2D", 
+    "#FE952C", "#FE8F2A", "#FF8929", "#FF8428", "#FF7E27", "#FF7927", "#FF7527", "#FF7128", "#FE6E29", "#FE6A2B", 
+    "#FD682D", "#FC652F", "#FB6330", "#FA6032", "#F95E33", "#F85C34", "#F65A34", "#F55733", "#F35432", "#F15230", 
+    "#F04F2D", "#EE4B2A", "#EC4827", "#EA4524", "#E84221", "#E63E1F", "#E43B1D", "#E2381C", "#E0351C", "#DD321E", 
+    "#DB3020", "#D92E25", "#D62C2B", "#D42A31", "#D22939", "#CF2841", "#CD274A", "#CB2754", "#C8275D", "#C62866", 
+    "#C4296F", "#C22A77", "#BF2C7F", "#BD2E86", "#BB308C", "#B93391", "#B73596", "#B5389A", "#B33B9D", "#B13EA0", 
+    "#AE41A2", "#AC43A3", "#A946A4", "#A648A4", "#A349A4", "#9F4AA3", "#9B4BA2", "#974BA1", "#934B9F", "#8E4A9D", 
+    "#8A499A", "#854897", "#804795", "#7B4692", "#76448E", "#71438B", "#6C4188"];
+
+var selecteddata = [], boxdata =[[],[]], boxready = [];
+var line = d3.svg.line().defined(function(d) {return !isNaN(d[0])&&!isNaN(d[1]); });
+var y = d3.scale.ordinal()
+    .rangeRoundPoints([padding,height - padding]);
+var oneday = 24 * 60 * 60 * 1000;
+
+var chart = d3.box()
+    .whiskers(iqr(3))
+    .width(box_width)
+    .height(box_height);
+
+var x = d3.time.scale()
+    .range([10, width-10]);
+var x1 = d3.scale.linear()
+    .range([5, width-5]);
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .tickFormat(function (d, i) {
+      return getNameMap(d);
+     })
+    .orient("left");
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .tickSize(30)
+    .orient("top");
+
+var x1Axis = d3.svg.axis()
+    .scale(x1)
+    .orient("bottom");
+
+var parseDate = d3.time.format("%Y-%m-%d").parse,
+    parseHour = d3.time.format("%Y-%m-%d %H:%M:%S").parse,
+    formatDate = d3.time.format("%b-%d-%Y");
+
+var controller = d3.select('#control');
+
+var svg = d3.select("#timeline_viz").append("svg")
+    .attr("class", "timeline")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+d3.json("example.json", function(error,data) {
+    var outliers = [], types = [], eventtypes=[];
+
+    data.forEach(function(d,i) {
+      var thisitem = {};
+      for (var event in d) {
+        if (event === "name" || event ==="type") thisitem[event] = d[event]
+        else thisitem[event] = parseDate(d[event])
+      }
+      selecteddata.push(thisitem);
+    });
+
+    selecteddata.map(function(d) {
+      if(d.type && types.indexOf(d.type) <= -1) types.push(d.type)
+    });
+
+    for (var obj in selecteddata[0]) {
+      if (obj !== "name" && obj !== "type") eventtypes.push(obj)
+      if(obj === "type" && types.indexOf(selecteddata[0].type) <= -1) types.push(selecteddata[0].type)
+    }
+    var eventfilters = eventtypes.slice(0);
+
+    d3.select(".dropdown-content").selectAll('.boxoption').data(eventtypes)
+      .enter()
+      .append("li").attr("class","boxoption")
+      .text(function(d) {return getNameMap(d); })
+      .append("input")
+      .attr("type","checkbox")
+      .on("click", function(d) {
+        if(d3.select(this).property("checked")) boxready.push(d);
+        if (boxready.length == 2) { 
+          createBox(boxready); 
+          boxready = []; 
+          d3.selectAll(".boxoption input").property("checked", false);
+        };
+      })
+
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0,-50)")
+        .call(xAxis)
+        .selectAll("text") 
+        .style("text-anchor", "end")
+        .attr("y", "12");
+     
+    svg.append("g")
+        .attr("class", "y axis")
+        .attr("transform", "translate(-10,0)")
+        .call(yAxis);
+
+    update(eventtypes,selecteddata);
+
+    var legend = svg.selectAll('.filter').data(types);
+    var buttons = controller.selectAll("input").data(eventtypes) 
+      .enter().append("input")
+      .attr("type","button")
+      .attr('value',function(d) {return getNameMap(d); })
+      .attr("class","eventtype")
+      .attr("x", function(c,i) {return i* 55; })
+      .attr("y", 0)
+      .attr("fill", "grey")
+      .on("click", function(d) {
+          var thisevent= d3.select(this);
+          thisevent.classed("active", !thisevent.classed("active"));
+          var index = eventfilters.indexOf(d);
+          if (index > -1) eventfilters.splice(index,1)
+          else eventfilters.splice(0,0,d);
+          update(eventfilters,selecteddata);
+      });
+
+    function update(events,data) {
+      ifbox = false;
+      d3.selectAll('.eventaxis').remove();
+      updateAxis(events,data);
+      svg.selectAll("g.y.axis").call(yAxis);
+      svg.selectAll("g.x.axis").call(xAxis)
+        .selectAll("text") 
+        .style("text-anchor", "end")
+        .attr("dx", "-0.5em")
+        .attr("dy", "1em");
+      d3.selectAll('.name').remove();
+
+      data.sort(function(a,b) {return d3.ascending(a.Created, b.Created)});
+
+      var names = svg.selectAll('.name').data(data);
+      names.enter()
+        .append("g")
+        .attr("class", "name");
+     
+      names.each(function(d, i) {
+        var thisdomain = d3.select(this);
+        var thiscolor = colorPinky[i * (80 / (data.length - 1))];
+        var ifoutlier = d.outlier;
+
+        thisdomain.append("path")
+          .attr("d", function(d) {return path(d); })
+          .style("stroke", ifoutlier? "#f37821":thiscolor)
+          .style("stroke-width", 6)
+          .style("opacity", 0.2)
+          .style("stroke-linecap", 'round')
+          .style("fill", "none");
+          // .on("mouseover", function(d) {
+          //   var rowdata = d3.select(this.parentNode).datum();
+          //   d3.select(this).classed("highlighted",true);
+          //   d3.select(this.parentNode).selectAll('.diamond')
+          //     .style("stroke",thiscolor).style("opacity", 1);
+
+          //   d3.select(this.parentNode).select('path').style("opacity", 0.8);
+          //   // console.log(d.name)
+          // })
+          // .on("mouseout", function(d) {
+          //   d3.select(this.parentNode).selectAll('.diamond').style("stroke","white").style("opacity", ).style("stroke-width", 1);
+          //   d3.select(this.parentNode).select('path').style("stroke",thiscolor).style("opacity", 0.2);
+          // })
+
+        events.forEach(function(event) {
+          thisdomain.append("path")
+            .attr("d", "M 0 -8 8 0 0 8 -8 0 Z")
+            .attr("class", "diamond") 
+            .attr("transform", "translate(" + x(d[event]) + "," + y(event) + ")")
+            .style("fill", thiscolor)
+            .style("stroke", 'white')
+            .style("opacity", 0.8)
+            .on("mouseover", function(d) {
+                var rowdata = d3.select(this.parentNode).datum();
+                d3.select(this).classed("highlighted",true);
+                d3.select(this.parentNode).selectAll('.diamond')         
+                  .style("stroke", thiscolor)
+                  .style("stroke-width", 10)
+                  .style("opacity", 0.9);
+
+                d3.select(this.parentNode).select('path').style("opacity", 0.9);
+                div.transition()
+                 .duration(100)
+                 .style("opacity", .9)
+                 .style({
+                    display: "inline",
+                    position: "absolute",
+                    top:  height + margin.top + margin.bottom + 80 + "px",
+                    left:  x(d.Created) + 200 +  "px"
+                 });
+                 div.html(
+                  "<p><span class='name'>" + d.name +  "</span><br/>Created: " + formatDate(d.Created)
+                  + "<br/>FirstSeen: " + formatDate(d.FirstSeen) 
+                  + "<br/>Updated: " + formatDate(d.Updated) + "</p>"
+                  );
+                console.log(d);
+            })
+            .on("mouseout", function(d) {
+                d3.select(this.parentNode).selectAll('.diamond').style("stroke","white").style("opacity", 1).style("stroke-width", 1);
+                d3.select(this.parentNode).select('path').style("stroke",thiscolor).style("opacity", 0.2);
+                div.transition()
+                 .duration(100)
+                 .style("opacity", .9)
+                 .style({
+                    display: "none"
+                 });
+            })
+        });
+      });
+    }
+    function updateAxis(events,data) {
+      y.domain(events);
+      var eventlines = svg.selectAll('.eventaxis').data(events);
+      events.forEach(function(event) {
+        svg.append('line')
+          .attr("class","eventaxis")
+          .attr("x1", 0)
+          .attr("x2", width)
+          .attr("y1", y(event))
+          .attr("y2", y(event))
+          .style("stroke", "#ccc")
+      })
+      var x_domain = [];
+
+      events.forEach(function(event) {
+        x_domain.push(d3.max(data, function(d) {return d[event]}));
+        x_domain.push(d3.min(data, function(d) {return d[event]}));
+      });
+      x.domain(d3.extent(x_domain));
+    }
+
+    function path(d) {
+        var paths = line(y.domain().map(function(p) { 
+          if (!d[p]) {
+            return [NaN,NaN]
+            if (p ==="created") return [-1000, y(p)]
+            else return [width +1000, y(p)]
+          }
+          else {
+            return [x(d[p]), y(p)];
+          }   
+        })); 
+        return paths;
+    }
+});
+
+// Returns a function to compute the interquartile range.
+function iqr(k) {
+  return function(d, i) {
+    var q1 = d.quartiles[0],
+        q3 = d.quartiles[2],
+        iqr = (q3 - q1) * k,
+        i = -1,
+        j = d.length;
+    while (d[++i] < q1 - iqr);
+    while (d[--j] > q3 + iqr);
+    return [i, j];
+  };
+}
+
+function toggleDropdown () {
+    document.getElementById("myDropdown").classList.toggle("show");
+}
+
+function createBox(e) {
+  boxdata = [];
+  var outliers = [];
+  var dropdowns = document.getElementsByClassName("dropdown-content");
+
+  for (var i = 0; i < dropdowns.length; i++) {
+    var openDropdown = dropdowns[i];
+    if (openDropdown.classList.contains('show')) {
+      openDropdown.classList.remove('show');
+    }
+  }
+  selecteddata.forEach(function(d) {
+    if (d[e[0]] && d[e[1]]) {
+      var each = (d[e[0]] - d[e[1]]) / oneday;
+      boxdata.push(each);
+      if(d.name.includes("top")) outliers.push(d.name);
+      if(each < -2 ) outliers.push(d.name);
+    }
+  });
+  // console.log("outliers"+outliers);
+
+  var boxsvg = d3.select("#box_viz").append("svg")
+      .data([boxdata])
+      .attr("class", "box")
+      .attr("width", width + box_margin.left + box_margin.right)
+      .attr("height", box_height+ box_margin.top + box_margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + box_margin.left + "," + box_margin.top + ")")
+      .call(chart);
+
+  var title = boxsvg.append("text")
+      .text(function() {return getNameMap(e[0]); })
+      .style("text-anchor","end") 
+      .attr("y", margin.top/5)
+      .attr("x", -20);
+  var title2 = boxsvg.append("text")
+      .text(function() {return "-" +getNameMap(e[1]); })
+      .style("text-anchor","end") 
+      .attr("y", margin.top/5)
+      .attr("dy", "1.5em")
+      .attr("x", -20);
+}
+
+function getNameMap(dimension) { 
+  // NOTE: Predefined UI label
+  var names = {
+      "the_name_you_want" : 'rawName'
+  }
+  if (names[dimension])
+    return names[dimension]
+  else
+    return dimension
+}
+
+</script>

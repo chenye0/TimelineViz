@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Joe",
+    "HighSchool": "2008-07-01",
+    "MiddleSchool": "2004-07-01",
+    "type": "developer"
+  },
+  {
+    "name": "Sam",
+    "HighSchool": "2006-07-01",
+    "MiddleSchool": "2003-07-01",
+    "type": "designer"
+  },
+  {
+    "name": "Chen",
+    "HighSchool": "2012-07-01",
+    "MiddleSchool": "2008-09-01",
+    "type": "developer"
+  },
+  {
+    "name": "Dragon",
+    "HighSchool": "2007-03-03",
+    "MiddleSchool": "2004-09-01",
+    "type": "designer"
+  }
+]

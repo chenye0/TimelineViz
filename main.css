@@ -1,0 +1,182 @@
+/*@import url('https://fonts.googleapis.com/css?family=Muli:400,400i,700');*/
+body {    
+    margin: 0 !important;
+    padding: 0 !important;
+    font-family: 'Muli', sans-serif;
+}
+input[type=button]:focus {
+  outline:0 !important;
+}
+#container {
+  display: flex;
+  flex-direction: row;
+}
+#topbar {
+  height: 80px;
+  padding: 0 32px;
+  background-color: #333;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#control {
+  display: none;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  flex-grow: 0;
+}
+#timeline_viz {
+  padding-top: 48px;
+  background-color: #fff;
+  display: flex;
+  justify-content: center;
+}
+.tooltip {
+  background-color: #111;
+  opacity : 0.8;
+  /*padding: 0 px;*/
+  font-size: 13px;
+  color: white;
+  font-weight: 300;
+}
+p {
+  line-height: 1.5;
+  padding: 0px 16px;
+}
+.name {
+  color:steelblue;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+#boxplot {
+  display: none;
+  border-top: 1px solid #ccc;
+}
+.axis{
+  font-size: 16px;
+  font-family: 'Muli', sans-serif;
+  font-weight: 700;
+  color: #ccc;
+}
+  .axis.x {
+    font-size: 12px;
+  }
+  .x text {
+    fill: #999;
+    font-weight: 400;
+  }
+
+.axis path,
+.axis line {
+  fill: none;
+  shape-rendering: crispEdges;
+}
+  .axis.x line{
+    stroke: #aaa;
+  }
+
+circle {
+  opacity: 0.6;
+}
+
+.name path {
+  opacity: 0.6;
+}
+.filter.active {
+  fill: #eee;
+}
+
+.x.axis path {
+  display: none;
+}
+.eventtype, .actionbtn{
+  background-color: #333;
+  border: white solid 2px;
+  color: white;
+  padding: 4px 4px;
+  text-align: center;
+  text-decoration: none;
+  font-size: 10px;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+  .eventtype.active {
+    background-color: #999;
+  }
+
+.box {
+  font: 14px sans-serif;
+}
+
+.box line,
+.box rect,
+.box circle {
+  fill: #fff;
+  stroke: #333;
+  stroke-width: 1.5px;
+}
+
+.box .center {
+  stroke-dasharray: 3,3;
+}
+
+.box .outlier {
+  fill: none;
+  stroke: #ccc;
+}
+
+.dropbtn {
+    background-color: white;
+    height: 100%;
+    width: 100%;
+    color: #aaa;
+    padding: 16px;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+}
+/* Dropdown button on hover & focus */
+.dropbtn:hover, .dropbtn:focus {
+    background-color: #ddd;
+    outline:0 !important;
+}
+
+/* The container <div> - needed to position the dropdown content */
+.dropdown {
+    position: relative;
+    top: 25px;
+    left: 200px;
+    display: block;
+    border: 1px dashed #333;
+    height: 48px;
+    width: 400px;
+}
+#myDropdown {
+    padding: 20px 20px;
+}
+#myDropdown li {
+    list-style: none outside none;
+}
+
+/* Dropdown Content (Hidden by Default) */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+}
+
+/* Links inside the dropdown */
+.dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+.dropdown-content a:hover {background-color: #f1f1f1}
+
+.show {display:block;}
