@@ -14,9 +14,6 @@
     </ul>
   </div> -->
   <div id = "timeline_viz"></div>
-  <div id = "animate">
-    <button ></button>
-  </div>
   <div id ="boxplot">
     <div id = 'box_viz'></div>
     <div class = "dropdown">
@@ -33,7 +30,7 @@
 var container_width = document.body.clientWidth;
 var container_height = document.body.clientHeight;
 var margin = {top: 100, right: 200, bottom: 50, left: 250},
-    width = d3.min([container_width,1200]) - margin.left - margin.right,
+    width = d3.min([container_width,1280]) - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom,
     padding = 20;
 var div = d3.select("#timeline_viz").append("div")
@@ -246,7 +243,6 @@ d3.json("example.json", function(error,data) {
                   + "<br/>FirstSeen: " + formatDate(d.FirstSeen) 
                   + "<br/>Updated: " + formatDate(d.Updated) + "</p>"
                   );
-                console.log(d);
             })
             .on("mouseout", function(d) {
                 d3.select(this.parentNode).selectAll('.diamond').style("stroke","white").style("opacity", 1).style("stroke-width", 1);
@@ -334,7 +330,6 @@ function createBox(e) {
       if(each < -2 ) outliers.push(d.name);
     }
   });
-  // console.log("outliers"+outliers);
 
   var boxsvg = d3.select("#box_viz").append("svg")
       .data([boxdata])
